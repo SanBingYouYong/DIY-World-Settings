@@ -10,8 +10,11 @@ using UnityEngine;
 // okay, don't worry about performance now - until it becomes a problem - then solve it
 public class PointSystem : MonoBehaviour
 {
-    public string id;
+    public string pointSystemID;
 
+    string subOriginID;
+
+    // note that most of the times xyz should be world coordinate (?) wait no, is it local? 
     public float x;
     public float y;
     public float z;
@@ -22,16 +25,74 @@ public class PointSystem : MonoBehaviour
 
     public GameObject systemInstance;  // not needed anymore after converting to monobehaviour script
 
-    private Color startcolor;
+    //private Color startcolor;
 
-    public PointSystem()
+    GameObject arrowXRef;
+    GameObject arrowYRef;
+    GameObject arrowZRef;
+
+    GameObject arrowXInstance;
+    GameObject arrowYInstance;
+    GameObject arrowZInstance;
+
+    List<LineRenderer> allEdges;
+
+    //private bool clicked;
+
+    WorldSettingSceneControl sceneControl;  // a reference to the scene control in current world setting scene
+
+    ///////////////////////////////////////////////////
+    ///Property-Related Fields
+    ///////////////////////////////////////////////////
+    private string starSystemName;
+
+    private StarSpectalType starType;
+
+    private int planetCount;
+
+    private string holder;
+
+    public enum StarSpectalType
     {
-        id = "_";
+        O,
+        B,
+        A,
+        F,
+        G,
+        K,
+        M
+    }
+
+    public string SubOriginID { get => subOriginID; set => subOriginID = value; }
+    public List<LineRenderer> AllEdges { get => allEdges; set => allEdges = value; }
+    public string StarSystemName { get => starSystemName; set => starSystemName = value; }
+    public StarSpectalType StarType { get => starType; set => starType = value; }
+    public int PlanetCount { get => planetCount; set => planetCount = value; }
+    public string Holder { get => holder; set => holder = value; }
+
+    void Awake()
+    {
+        // from constructor
+        pointSystemID = "_";
         x = -1f;
         y = -1f;
         z = -1f;
         neighbors = new Dictionary<string, float>();
         systemInstance = null;
+        AllEdges = new List<LineRenderer>();
+
+        sceneControl = GameObject.Find("WorldSettingSceneControl").GetComponent<WorldSettingSceneControl>();
+        arrowXRef = sceneControl.ArrowX;
+        arrowYRef = sceneControl.ArrowY;
+        arrowZRef = sceneControl.ArrowZ;
+        //clicked = false;
+        // to initialize property-fields
+        StarConfigInitialize();
+    }
+
+    private void Update()
+    {
+        
     }
 
     void OnMouseEnter()
@@ -46,6 +107,32 @@ public class PointSystem : MonoBehaviour
         GetComponent<Outline>().enabled = false;
     }
 
+    void OnMouseOver()
+    {
+        // if clicked: show three arrows to move
+        if (Input.GetMouseButtonDown(0))
+        {
+            Debug.Log("You've clicked the star system with id: " + pointSystemID);
+            sceneControl.LastClickedStarPointID = pointSystemID; // that it will leave this id alone
+            sceneControl.NewStarPointClicked = true; // starts the cleaning process, needs testing on async
+            // need a method to tell it not to re-generate same arrows over and over again: 
+            // Destroy them now and generate again..? 
+            // another good reason: if not destroyed, the variable will lose track of older arrows! 
+            // try destroy
+            if (arrowXInstance != null || arrowYInstance != null || arrowZInstance != null)
+            {
+                DestroyArrows();
+            }
+            // generate
+            arrowXInstance = Instantiate(arrowXRef, gameObject.transform, false);
+            arrowYInstance = Instantiate(arrowYRef, gameObject.transform, false);
+            arrowZInstance = Instantiate(arrowZRef, gameObject.transform, false);
+            // 需要一个广播器，告知其他point system：destroy掉他们的arrows？
+            // added flags to WorldSettingsSceneControl.Update()
+        }
+    }
+
+    // to update the localPos of the GO, however, this does not effect the real GO position!!! 
     public void SetCoordinate(float x = 0f, float y = 0f, float z = 0f)
     {
         this.x = x;
@@ -54,12 +141,72 @@ public class PointSystem : MonoBehaviour
         //return true;
     }
 
+    public void SetCoordinate(Vector3 pos)
+    {
+        x = pos.x;
+        y = pos.y;
+        z = pos.z;
+    }
+
+    public void DestroyArrows()
+    {
+        Destroy(arrowXInstance);
+        Destroy(arrowYInstance);
+        Destroy(arrowZInstance);
+    }
+
+    private void StarConfigInitialize()
+    {
+        starSystemName = RandomStarSystemName();
+        starType = RandomStarType();
+        planetCount = RandomPlanetCount();
+        holder = RandomHolder();
+    }
+
+    private string RandomStarSystemName()
+    {
+        return "a meaningful star system name";
+    }
+
+    private StarSpectalType RandomStarType()
+    {
+        System.Array types = System.Enum.GetValues(typeof(StarSpectalType));
+        int index = Random.Range(0, types.Length - 1);
+        return (StarSpectalType)types.GetValue(index);
+    }
+
+    private int RandomPlanetCount()
+    {
+        return Random.Range(1, 15);
+    }
+
+    private string RandomHolder()
+    {
+        return "an empire";
+    }
+
     public override string ToString()
     {
         string info = "Printing Info of Point System: \n";
-        info += "Id: " + id + " \n";
+        info += "Id: " + pointSystemID + " \n";
         info += "Location: " + x + ", " + y + ", " + z + " \n";
         info += "Neighbors: " + string.Join(", ", neighbors) + " \n";
+        return info;
+    }
+
+    public string ToCsvString()
+    {
+        string info = "";
+        info += pointSystemID + "," + subOriginID + ","; // ID
+        info += x + "," + y + "," + z + ","; // position
+        // Property-Related Fields
+        info += starSystemName + "," + starType + "," + planetCount + "," + holder;
+        // neighbors
+        foreach (KeyValuePair<string, float> neighbor in neighbors)
+        {
+            info += "," + neighbor.Key + "," + neighbor.Value;
+        }
+        // "\n" omitted since writer.WriteLine() automatically starts a new line
         return info;
     }
 

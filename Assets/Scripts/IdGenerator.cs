@@ -7,13 +7,20 @@ using UnityEngine;
 public class IdGenerator
 {
     private static IdGenerator generatorInstance;
-    private string lastID;
-    private int count;
+    
+    private string lastPointSystemID;
+    private int pointSystemCount;
+
+    private string lastSubOriginID;
+    private int subOriginCount;
 
     private IdGenerator()
     {
-        lastID = "";
-        count = 0;
+        lastPointSystemID = "";
+        pointSystemCount = 0;
+
+        lastSubOriginID = "";
+        subOriginCount = 0;
     }
 
     public static IdGenerator getIdGenerator()
@@ -26,10 +33,19 @@ public class IdGenerator
     }
 
 
-    public string getNextID()
+    public string getNextPointSystemID()
     {
-        generatorInstance.lastID = generatorInstance.count.ToString();
-        generatorInstance.count++;
-        return generatorInstance.lastID;
+        generatorInstance.lastPointSystemID = generatorInstance.pointSystemCount.ToString();
+        generatorInstance.pointSystemCount++;
+        return generatorInstance.lastPointSystemID;
     }
+
+    public string getNextSubOriginID()
+    {
+        generatorInstance.lastSubOriginID = generatorInstance.subOriginCount.ToString();
+        generatorInstance.subOriginCount++;
+        return generatorInstance.lastSubOriginID;
+    }
+
+    // TODO: after loading some world, it should resume from where the id enumerator stopped last time
 }

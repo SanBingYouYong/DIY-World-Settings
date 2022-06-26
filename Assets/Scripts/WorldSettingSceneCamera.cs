@@ -12,7 +12,7 @@ public class WorldSettingSceneCamera : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        Camera = GameObject.Find("Main Camera");
+        Camera = GameObject.Find("Main Camera WSS");
         camera_pos = Camera.transform.position;
         camera_rot = Camera.transform.eulerAngles;
     }
