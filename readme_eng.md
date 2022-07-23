@@ -2,6 +2,8 @@
 
 [CN+ENG](./readme.md)
 
+![current status screenshot](./current.png)
+
 ### Introduction
 
 The original intention of this tool set is to integrate functions such as map making, timeline setting, event binding and text management, etc., to provide convenience in DIY world settings and presenting.

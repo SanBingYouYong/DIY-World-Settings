@@ -4,6 +4,8 @@
 
 [English_only](./readme_eng.md)
 
+![current status screenshot](./current.png)
+
 ### 简介 Introduction
 
 此工具集的初衷是集成地图制作-时间线设定-事件绑定-文本管理等功能, 在世界观设定与展示上提供方便. 
