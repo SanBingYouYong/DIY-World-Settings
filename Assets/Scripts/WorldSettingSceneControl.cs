@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using SimpleFileBrowser;
 
 public class WorldSettingSceneControl : MonoBehaviour
 {
@@ -27,8 +28,10 @@ public class WorldSettingSceneControl : MonoBehaviour
     Toggle generateNewClusterToggle;
 
     GameObject saveWorldConfigButton;
+    string savePath;
 
     GameObject loadWorldConfigButton;
+    string loadPath;
 
     PointSystem lastOriginPS;
 
@@ -440,11 +443,40 @@ public class WorldSettingSceneControl : MonoBehaviour
         return (splits[0], splits[splits.Length - 1]);
     }
 
+    IEnumerator ShowSaveDialogCoroutine()
+    {
+        yield return FileBrowser.WaitForSaveDialog(FileBrowser.PickMode.Files);
+        if (FileBrowser.Success)
+        {
+            savePath = FileBrowser.Result[0];
+            //Debug.Log(FileBrowser.Result);
+            SaveWorldConfigToCsvAfterSaveDialog();
+        }
+    }
+
     // TODO: read world setting from such a csv file
     private void SaveWorldConfigToCsv()
     {
+        StartCoroutine(ShowSaveDialogCoroutine());
         // only save the list allStarSystems for now
-        string tempPath = "Assets/Resources/tempSave.csv";
+        //string tempPath = "Assets/Resources/tempSave.csv";
+        //string tempPath = savePath;
+        //StreamWriter writer = new StreamWriter(tempPath, false, System.Text.Encoding.UTF8); // to the file path, overwrites, utf-8 encoding
+        //Debug.Log("writer initialized");
+        //// insert some identification data first? like name of this world blablabla
+        //foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
+        //{
+        //    Debug.Log("writing new ps");
+        //    writer.WriteLine(ps.ToCsvString());
+        //}
+        //Debug.Log("writing done");
+        //writer.Close();
+        //Debug.Log("writer closed");
+    }
+
+    private void SaveWorldConfigToCsvAfterSaveDialog()
+    {
+        string tempPath = savePath;
         StreamWriter writer = new StreamWriter(tempPath, false, System.Text.Encoding.UTF8); // to the file path, overwrites, utf-8 encoding
         Debug.Log("writer initialized");
         // insert some identification data first? like name of this world blablabla
@@ -458,14 +490,33 @@ public class WorldSettingSceneControl : MonoBehaviour
         Debug.Log("writer closed");
     }
 
+    IEnumerator ShowLoadDialogCoroutine()
+    {
+        yield return FileBrowser.WaitForLoadDialog(FileBrowser.PickMode.Files);
+        if (FileBrowser.Success)
+        {
+            loadPath = FileBrowser.Result[0];
+            //Debug.Log(FileBrowser.Result);
+            LoadWorldConfigFromCsvAfterLoadDialog();
+        }
+    }
+
     private void LoadWorldConfigFromCsv()
     {
+        StartCoroutine(ShowLoadDialogCoroutine());
+
+    }
+
+    private void LoadWorldConfigFromCsvAfterLoadDialog()
+    {
+
         DestroyCurrentWorldSetting();
 
 
         // using fixed tempSave to test on functionalities now
         // TODO: add a backup functionality, since now the whole save will be overwritten
-        string tempPath = "Assets/Resources/tempSave.csv";
+        //string tempPath = "Assets/Resources/tempSave.csv";
+        string tempPath = loadPath;
         StreamReader reader = new StreamReader(tempPath, true);
         while (!reader.EndOfStream)
         {
@@ -555,6 +606,11 @@ public class WorldSettingSceneControl : MonoBehaviour
         {
             Destroy(childTransform.gameObject);
         }
+    }
+
+    public void ChangeStarSysName()
+    {
+
     }
 
     
