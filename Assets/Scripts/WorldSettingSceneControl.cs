@@ -17,6 +17,9 @@ public class WorldSettingSceneControl : MonoBehaviour
     GameObject origin;
     GameObject hyperspaceChannel;
 
+    public Camera mainCam;
+    private WorldSettingSceneCamera mainCamScript;
+
     GameObject arrowX;
     GameObject arrowY;
     GameObject arrowZ;
@@ -44,10 +47,10 @@ public class WorldSettingSceneControl : MonoBehaviour
     ///////////////////////////////////////////////////
     ///Property-Related Fields
     ///////////////////////////////////////////////////
-    private Text starSystemNameDynamic;
-    private Text starTypeDynamic;
-    private Text planetCountDynamic;
-    private Text heldByDynamic;
+    public InputField starSystemNameDynamic;
+    public InputField starTypeDynamic;
+    public InputField planetCountDynamic;
+    public InputField heldByDynamic;
 
 
 
@@ -76,6 +79,8 @@ public class WorldSettingSceneControl : MonoBehaviour
         ArrowY = Resources.Load("Arrow_Y") as GameObject;
         ArrowZ = Resources.Load("Arrow_Z") as GameObject;
 
+        mainCamScript = mainCam.GetComponent<WorldSettingSceneCamera>();
+
         newStarPointClicked = false;
 
         // necessity doubtful;
@@ -94,10 +99,10 @@ public class WorldSettingSceneControl : MonoBehaviour
         //starSystems = new List<GameObject>();
         allLineRenderers = new List<LineRenderer>();
         // hopefully they stay as reference
-        starSystemNameDynamic = GameObject.Find("StarSystemNameDynamic").GetComponent<Text>();
-        starTypeDynamic = GameObject.Find("StarTypeDynamic").GetComponent<Text>();
-        planetCountDynamic = GameObject.Find("PlanetCountDynamic").GetComponent<Text>();
-        heldByDynamic = GameObject.Find("HeldByDynamic").GetComponent<Text>();
+        //starSystemNameDynamic = GameObject.Find("StarSystemNameDynamic").GetComponent<Text>();
+        //starTypeDynamic = GameObject.Find("StarTypeDynamic").GetComponent<Text>();
+        //planetCountDynamic = GameObject.Find("PlanetCountDynamic").GetComponent<Text>();
+        //heldByDynamic = GameObject.Find("HeldByDynamic").GetComponent<Text>();
 
         if (!singleSceneDebug)
         {
@@ -613,5 +618,36 @@ public class WorldSettingSceneControl : MonoBehaviour
 
     }
 
-    
+    // User edit of selected point system's info
+
+    // stop camera movement
+    public void EditStart()
+    {
+
+    }
+
+    // since no InputField.OnEditStart is available: 
+    public void EditDuring()
+    {
+        if (mainCamScript.moving)
+        {
+            mainCamScript.moving = false;
+        }
+    }
+
+    // update star system config
+    public void EditEnd()
+    {
+        mainCamScript.moving = true;
+        var curPS = origin.GetComponent<Origin>().AllStarSystems.Find(ps => ps.pointSystemID == lastClickedStarPointID);
+        EditPSSaveConfig(curPS);
+    }
+
+    private void EditPSSaveConfig(PointSystem curPS)
+    {
+        curPS.StarSystemName = starSystemNameDynamic.text;
+        //curPS.StarType = starTypeDynamic.text; // f it's gotta be a drop down
+        curPS.PlanetCount = int.Parse(planetCountDynamic.text);
+        curPS.Holder = heldByDynamic.text;
+    }
 }
