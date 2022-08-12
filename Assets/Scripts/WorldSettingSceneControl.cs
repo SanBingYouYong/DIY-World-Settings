@@ -8,7 +8,7 @@ using SimpleFileBrowser;
 
 public class WorldSettingSceneControl : MonoBehaviour
 {
-    bool singleSceneDebug = true;
+    bool singleSceneDebug = false;
 
     string WorldSettingFilePath;
 
@@ -149,9 +149,10 @@ public class WorldSettingSceneControl : MonoBehaviour
     {
         if (GameObject.Find("SceneManagerControl").GetComponent<SceneManagerControl>().Mode == SceneManagerControl.LoadMode.LoadSavedWorld)
         {
-            this.WorldSettingFilePath = GameObject.Find("SceneManagerControl").GetComponent<SceneManagerControl>().WorldSettingsFilePath;
-            Debug.Log("Loading Specified World Setting: " + WorldSettingFilePath);
-            // load the specified world setting, so other functionality can build on it
+            //this.WorldSettingFilePath = GameObject.Find("SceneManagerControl").GetComponent<SceneManagerControl>().WorldSettingsFilePath;
+            //Debug.Log("Loading Specified World Setting: " + WorldSettingFilePath);
+            //// load the specified world setting, so other functionality can build on it
+            LoadWorldConfigFromCsv();
         }
         else
         {
@@ -295,7 +296,8 @@ public class WorldSettingSceneControl : MonoBehaviour
     private void InitializeNewNeighbor(GameObject activeSubOriginGO, PointSystem currentOrigin, out GameObject newNeighbor, out PointSystem newNeighborPS)
     {
         newNeighbor = Instantiate(starPoint, activeSubOriginGO.transform, false);
-        newNeighborPS = newNeighbor.AddComponent<PointSystem>();
+        //newNeighborPS = newNeighbor.AddComponent<PointSystem>();
+        newNeighborPS = newNeighbor.GetComponent<PointSystem>();
         newNeighborPS.pointSystemID = idGenerator.getNextPointSystemID();
         newNeighborPS.SubOriginID = currentOrigin.SubOriginID;
         // better add them after all operations complete, above
@@ -308,7 +310,8 @@ public class WorldSettingSceneControl : MonoBehaviour
     private void InitializeNewFirstSystem(List<PointSystem> contours, GameObject activeSubOriginGO, SubOrigin newSubOriginSO)
     {
         GameObject firstSystem = Instantiate(starPoint, activeSubOriginGO.transform, false);
-        PointSystem firstSystemPS = firstSystem.AddComponent<PointSystem>();
+        //PointSystem firstSystemPS = firstSystem.AddComponent<PointSystem>();
+        PointSystem firstSystemPS = firstSystem.GetComponent<PointSystem>();
         firstSystemPS.pointSystemID = idGenerator.getNextPointSystemID();
         firstSystemPS.SubOriginID = newSubOriginSO.SubOriginID;  // to make it consistent, I know it's the same
                                                                  // remember to apply the xyz in PS to GO!!!
@@ -560,7 +563,8 @@ public class WorldSettingSceneControl : MonoBehaviour
                 origin.GetComponent<Origin>().SubOrigins.Add(subOrigin);
             }
             GameObject psGO = Instantiate(starPoint, subOriginGO.transform, false);
-            PointSystem ps = psGO.AddComponent<PointSystem>();
+            //PointSystem ps = psGO.AddComponent<PointSystem>(); // now the prefab has the script on it itself; 
+            PointSystem ps = psGO.GetComponent<PointSystem>();
             ps.pointSystemID = psID;
             ps.SubOriginID = soID;
             ps.SetCoordinate(x, y, z);
@@ -646,6 +650,7 @@ public class WorldSettingSceneControl : MonoBehaviour
     private void EditPSSaveConfig(PointSystem curPS)
     {
         curPS.StarSystemName = starSystemNameDynamic.text;
+        //curPS.systemNameTextMesh.text = curPS.StarSystemName;
         //curPS.StarType = starTypeDynamic.text; // f it's gotta be a drop down
         curPS.PlanetCount = int.Parse(planetCountDynamic.text);
         curPS.Holder = heldByDynamic.text;

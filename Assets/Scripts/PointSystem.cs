@@ -24,6 +24,10 @@ public class PointSystem : MonoBehaviour
     // decision: no, distance is still customizable, in order to simulate the hyperspace jump cost; 
 
     public GameObject systemInstance;  // not needed anymore after converting to monobehaviour script
+    
+    public TextMesh systemNameTextMesh;
+
+    public Camera mainCam;
 
     //private Color startcolor;
 
@@ -52,6 +56,7 @@ public class PointSystem : MonoBehaviour
 
     private string holder;
 
+    // 这里可能后期改成独自自定义的形式, 往存档文件里加个表头那种, 现在就, 摆烂吧, 不存自定义了
     public enum StarSpectalType
     {
         O,
@@ -85,14 +90,26 @@ public class PointSystem : MonoBehaviour
         arrowXRef = sceneControl.ArrowX;
         arrowYRef = sceneControl.ArrowY;
         arrowZRef = sceneControl.ArrowZ;
+
+        mainCam = GameObject.Find("Main Camera WSS").GetComponent<Camera>();
+
         //clicked = false;
         // to initialize property-fields
         StarConfigInitialize();
+
+        systemNameTextMesh.text = starSystemName;
     }
 
     private void Update()
     {
-        
+        // rotate the star name text to look at the cam; 
+        systemNameTextMesh.transform.LookAt(mainCam.transform);
+        // should be the angle between origin and cam? I don't want this in-parallel feel. 
+
+        if (starSystemName != systemNameTextMesh.text)
+        {
+            systemNameTextMesh.text = starSystemName;
+        }
     }
 
     void OnMouseEnter()
