@@ -8,7 +8,7 @@ using SimpleFileBrowser;
 
 public class WorldSettingSceneControl : MonoBehaviour
 {
-    bool singleSceneDebug = false;
+    bool singleSceneDebug = true;
 
     string WorldSettingFilePath;
 
@@ -43,6 +43,8 @@ public class WorldSettingSceneControl : MonoBehaviour
     List<PointSystem> allSystems;
     //List<GameObject> starSystems;
     List<LineRenderer> allLineRenderers;
+
+    public GameObject infoPanel; 
 
     ///////////////////////////////////////////////////
     ///Property-Related Fields
@@ -114,11 +116,22 @@ public class WorldSettingSceneControl : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        //if (Input.GetMouseButtonDown(0))  // empty click
+        //{
+        //    if (lastOriginPS != null)
+        //    {
+        //        lastOriginPS.DestroyArrows();
+        //    }
+        //}
         // destroying arrows on older clicks
         // update: moved the generating part to here as well: so that we can keep track of user clicking on arrows? 
         // will try adding scripts to arrows first... 
         if (newStarPointClicked)
         {
+            if (!infoPanel.activeSelf)
+            {
+                infoPanel.SetActive(true);
+            }
             PointSystem clickedPS = lastOriginPS; //TODO:  won't avoid null exception tho, needs testing
             foreach (PointSystem PS in origin.GetComponent<Origin>().AllStarSystems)
             {
@@ -576,6 +589,7 @@ public class WorldSettingSceneControl : MonoBehaviour
             psGO.transform.localPosition = new Vector3(x, y, z);
             // its neighboring connections will be forloop-updated after all ps generated
             // here we need to pre-generate the line renderers and add to ps.AllEdges to be updated later
+            // TODO: The connection now will be generated twice: 0-1 and 1-0, thus the update function won't function normally; 
             foreach (KeyValuePair<string, float> neighbor in neighbors)
             {
                 // wait, seems like the line renderer function can be reused? 

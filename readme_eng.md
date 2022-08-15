@@ -47,12 +47,14 @@ Here are all **completed** / *incomplete* / in development features:
  - *Time Slice Editing*
     - *Time Line Management*
  - *Text Management*
- - **Save World Settings**
-    - Import World Settings
-    - *Export World Settings*
+ - Save World Settings
+    - **Import World Settings**
+    - **Export World Settings**
     - *Collaboration*
 
 ### Publishing
 
 Currently aiming to release the first Unity/Windows version by September, during which there may be several preview releases with some completed features.
+
+Aug 2022: The first alpha version v0.1 is avaialable for download in the release page, it's an executable built with Unity. More details can be found in the readme file in the release itself. 
     

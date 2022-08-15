@@ -63,9 +63,9 @@ At present, because the author's skill set is limited, Unity is chosen for proto
  - *时间线设定*
     - *多个时间线操作与管理*
  - *文本管理*
- - **世界观保存**
-    - 世界观导入
-    - *世界观导出*
+ - 世界观保存
+    - **世界观导入**
+    - **世界观导出**
     - *多人协作*
 
 Here are all **completed** / *incomplete* / in development features:
@@ -89,9 +89,9 @@ Here are all **completed** / *incomplete* / in development features:
  - *Time Slice Editing*
     - *Time Line Management*
  - *Text Management*
- - **Save World Settings**
-    - Import World Settings
-    - *Export World Settings*
+ - Save World Settings
+    - **Import World Settings**
+    - **Export World Settings**
     - *Collaboration*
 
 ### 发布 Publishing
@@ -99,4 +99,8 @@ Here are all **completed** / *incomplete* / in development features:
 争取在九月份前发布第一个Unity/Windows版本, 期间可能会发布预览版, 提供部分做完了的功能. 
 
 Currently aiming to release the first Unity/Windows version by September, during which there may be several preview releases with some completed features.
+
+2022.08: 第一个预览版v0.1-alpha已经在release中发布, 为Unity打包的exe软件, 具体说明详见release内的readme. 
+
+Aug 2022: The first alpha version v0.1 is avaialable for download in the release page, it's an executable built with Unity. More details can be found in the readme file in the release itself. 
     
