@@ -4,7 +4,7 @@
 
 [English_only](./readme_eng.md)
 
-![current status screenshot](./current.png)
+![current status screenshot](./0.1sample.jpg)
 
 ### 简介 Introduction
 
