@@ -154,6 +154,7 @@ public class WorldSettingSceneControl : MonoBehaviour
             starTypeDynamic.text = clickedPS.StarType.ToString(); // may need a customized to string method
             planetCountDynamic.text = clickedPS.PlanetCount.ToString();
             heldByDynamic.text = clickedPS.Holder;
+            mainCamScript.moving = true; // to unlock cam when first clicked on a new ps
         }
         // TODO: in Update: check if any starpoint's position changed; if so, update connection - the line renderer
     }
