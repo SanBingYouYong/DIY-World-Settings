@@ -1,22 +1,20 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WorldSettingSceneCamera : MonoBehaviour
+public class Movement : MonoBehaviour
 {
 
-    public GameObject Camera;
     private Vector3 camera_pos;
     private Vector3 camera_rot;
-    // a flag set by the input field functions, to avoid wasd movements while typing; 
-    public bool moving; 
+    public bool moving;
+    public float speed = 10f;
 
     // Start is called before the first frame update
     void Start()
     {
-        //Camera = GameObject.Find("Main Camera WSS");
-        camera_pos = Camera.transform.position;
-        camera_rot = Camera.transform.eulerAngles;
+        camera_pos = transform.position;
+        camera_rot = transform.eulerAngles;
         moving = true;
     }
 
@@ -29,27 +27,30 @@ public class WorldSettingSceneCamera : MonoBehaviour
             {
                 //camera_pos.y += 50 * Time.deltaTime;
                 //Camera.transform.position = camera_pos;
-                Camera.transform.Translate(new Vector3(0, 0, 10 * Time.deltaTime));
+                //transform.Translate(new Vector3(0, 0, 10 * Time.deltaTime));
+                transform.position += transform.forward * speed * Time.deltaTime;
             }
             if (Input.GetKey(KeyCode.S))
             {
-                Camera.transform.Translate(new Vector3(0, 0, -10 * Time.deltaTime));
+                //transform.Translate(new Vector3(0, 0, -10 * Time.deltaTime));
+                transform.position += (-transform.forward) * speed * Time.deltaTime;
+                // ahhh the move method is not the one causing the angle problem, just made the xzy damping all to 0 from 1 in vcam1
             }
             if (Input.GetKey(KeyCode.A))
             {
-                Camera.transform.Translate(new Vector3(-10 * Time.deltaTime, 0, 0));
+                transform.Translate(new Vector3(-10 * Time.deltaTime, 0, 0));
             }
             if (Input.GetKey(KeyCode.D))
             {
-                Camera.transform.Translate(new Vector3(10 * Time.deltaTime, 0, 0));
+                transform.Translate(new Vector3(10 * Time.deltaTime, 0, 0));
             }
             if (Input.GetKey(KeyCode.Q))
             {
-                Camera.transform.Translate(new Vector3(0, -10 * Time.deltaTime, 0));
+                transform.Translate(new Vector3(0, -10 * Time.deltaTime, 0));
             }
             if (Input.GetKey(KeyCode.E))
             {
-                Camera.transform.Translate(new Vector3(0, 10 * Time.deltaTime, 0));
+                transform.Translate(new Vector3(0, 10 * Time.deltaTime, 0));
             }
             if (Input.GetMouseButton(2))
             {
@@ -59,10 +60,8 @@ public class WorldSettingSceneCamera : MonoBehaviour
                 camera_rot.x -= rv * 5;
                 camera_rot.y += rh * 5;
 
-                Camera.transform.eulerAngles = camera_rot;
+                transform.eulerAngles = camera_rot;
             }
         }
-        // if no input: slowly slow down to 0? : 
-        // want to add slow random regular turbulence too
     }
 }

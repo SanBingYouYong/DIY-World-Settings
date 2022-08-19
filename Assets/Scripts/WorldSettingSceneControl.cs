@@ -5,6 +5,8 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using SimpleFileBrowser;
+using Cinemachine;
+
 
 public class WorldSettingSceneControl : MonoBehaviour
 {
@@ -17,8 +19,8 @@ public class WorldSettingSceneControl : MonoBehaviour
     GameObject origin;
     GameObject hyperspaceChannel;
 
-    public Camera mainCam;
-    private WorldSettingSceneCamera mainCamScript;
+    public GameObject fakeMainCam;
+    private Movement fakeMainCamScript;
 
     GameObject arrowX;
     GameObject arrowY;
@@ -44,7 +46,13 @@ public class WorldSettingSceneControl : MonoBehaviour
     //List<GameObject> starSystems;
     List<LineRenderer> allLineRenderers;
 
-    public GameObject infoPanel; 
+    public GameObject infoPanel;
+
+    public GameObject scrollview;
+    public GameObject scrollviewContent;
+    public GameObject overviewContentItem;
+
+    public CinemachineVirtualCamera vcam;
 
     ///////////////////////////////////////////////////
     ///Property-Related Fields
@@ -81,7 +89,7 @@ public class WorldSettingSceneControl : MonoBehaviour
         ArrowY = Resources.Load("Arrow_Y") as GameObject;
         ArrowZ = Resources.Load("Arrow_Z") as GameObject;
 
-        mainCamScript = mainCam.GetComponent<WorldSettingSceneCamera>();
+        fakeMainCamScript = fakeMainCam.GetComponent<Movement>();
 
         newStarPointClicked = false;
 
@@ -154,7 +162,7 @@ public class WorldSettingSceneControl : MonoBehaviour
             starTypeDynamic.text = clickedPS.StarType.ToString(); // may need a customized to string method
             planetCountDynamic.text = clickedPS.PlanetCount.ToString();
             heldByDynamic.text = clickedPS.Holder;
-            mainCamScript.moving = true; // to unlock cam when first clicked on a new ps
+            fakeMainCamScript.moving = true; // to unlock cam when first clicked on a new ps
         }
         // TODO: in Update: check if any starpoint's position changed; if so, update connection - the line renderer
     }
@@ -175,6 +183,44 @@ public class WorldSettingSceneControl : MonoBehaviour
         }
     }
 
+    void PopulateOverviewScroll()
+    {
+        DepopulateOverviewScroll();
+        scrollview.SetActive(true);
+        foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
+        {
+            var item = Instantiate(overviewContentItem) as GameObject;
+            item.transform.SetParent(scrollviewContent.transform, false);
+            item.GetComponent<OverviewItem>().UpdateStats(ps);
+            item.GetComponent<OverviewItem>().ps = ps;
+        }
+    }
+
+    void DepopulateOverviewScroll()
+    {
+        foreach (Transform child in scrollviewContent.transform)
+        {
+            Destroy(child.gameObject);
+        }
+    }
+
+    public void FocusToGO(Transform tr)
+    {
+        //vcam.enabled = true;
+        //fakeMainCam.transform.position = Vector3.Lerp(fakeMainCam.transform.position, tr.position, Time.deltaTime * fakeMainCamScript.speed);
+        //fakeMainCam.transform.position = Vector3.MoveTowards(fakeMainCam.transform.position, tr.position, )
+        vcam.Follow = tr;
+        vcam.LookAt = tr;
+        fakeMainCam.transform.position = tr.position;
+        // TODO: use a Coroutine to make the transition smooth; 
+        vcam.Follow = fakeMainCam.transform;
+        vcam.LookAt = fakeMainCam.transform;
+        //Debug.Log("vcam following: " + tr.name);
+        //vcam.enabled = false;
+    }
+
+    //public PointSystem FindPSWithName
+
     void GenerateRandomCluster()
     {
         Debug.Log("Generating Random Cluster");
@@ -187,6 +233,9 @@ public class WorldSettingSceneControl : MonoBehaviour
         middleOut();
         //instantiateStarSystems();
         //UpdateConnection();
+        PopulateOverviewScroll();
+        //vcam.GetComponent<CinemachineVirtualCam>().
+        //vcam.Follow = origin.transform;
     }
 
     // originally only a generation method, now comes with model instantiation
@@ -624,7 +673,7 @@ public class WorldSettingSceneControl : MonoBehaviour
             subOriginGO.GetComponent<SubOrigin>().ClusterSystems.Add(ps);
             //Debug.Log(line);
         }
-
+        // Œ“ tm n^3
         foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
         {
             foreach (KeyValuePair<string, float> neighbor in ps.neighbors)
@@ -641,6 +690,7 @@ public class WorldSettingSceneControl : MonoBehaviour
         //{
         //    UpdateConnection(ps); // now all edges will be updated, the terminalPS should be able to be assigned the found ps now
         //}
+        PopulateOverviewScroll();
     }
 
     // disable all in-memory stats currently in Origin and others
@@ -674,16 +724,16 @@ public class WorldSettingSceneControl : MonoBehaviour
     // since no InputField.OnEditStart is available: 
     public void EditDuring()
     {
-        if (mainCamScript.moving)
+        if (fakeMainCamScript.moving)
         {
-            mainCamScript.moving = false;
+            fakeMainCamScript.moving = false;
         }
     }
 
     // update star system config
     public void EditEnd()
     {
-        mainCamScript.moving = true;
+        fakeMainCamScript.moving = true;
         var curPS = origin.GetComponent<Origin>().AllStarSystems.Find(ps => ps.pointSystemID == lastClickedStarPointID);
         EditPSSaveConfig(curPS);
     }

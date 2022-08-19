@@ -185,7 +185,9 @@ public class PointSystem : MonoBehaviour
 
     private string RandomStarSystemName()
     {
-        return "a meaningful star system name";
+        //return "a meaningful star system name";
+        // TODO: extract the length as a editable parameter
+        return Toolset.GenerateRandomName(Random.Range(3, 12));
     }
 
     private StarSpectalType RandomStarType()
