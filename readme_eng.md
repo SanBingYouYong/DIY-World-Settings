@@ -2,7 +2,7 @@
 
 [CN+ENG](./readme.md)
 
-![current status screenshot](./0.1sample.jpg)
+![current status screenshot](./AddedScrollView.png)
 
 ### Introduction
 

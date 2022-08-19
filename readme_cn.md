@@ -2,7 +2,7 @@
 
 [中英](./readme.md)
 
-![current status screenshot](./0.1sample.jpg)
+![current status screenshot](./AddedScrollView.png)
 
 ### 简介
 
