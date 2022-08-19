@@ -98,6 +98,8 @@ public class PointSystem : MonoBehaviour
         StarConfigInitialize();
 
         systemNameTextMesh.text = starSystemName;
+
+        //Debug.Log(AllEdges);
     }
 
     private void Update()

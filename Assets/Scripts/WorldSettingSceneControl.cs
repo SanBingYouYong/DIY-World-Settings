@@ -588,33 +588,59 @@ public class WorldSettingSceneControl : MonoBehaviour
             ps.Holder = holder;
             ps.neighbors = neighbors; // TODO: maybe a deep copy? 
             psGO.transform.localPosition = new Vector3(x, y, z);
-            // its neighboring connections will be forloop-updated after all ps generated
-            // here we need to pre-generate the line renderers and add to ps.AllEdges to be updated later
-            // TODO: The connection now will be generated twice: 0-1 and 1-0, thus the update function won't function normally; 
-            foreach (KeyValuePair<string, float> neighbor in neighbors)
-            {
-                // wait, seems like the line renderer function can be reused? 
-                // nvm the neighbors ain't ini'd yet
-                string lineRendererName = ps.pointSystemID + " to " + neighbor.Key;
-                LineRenderer lineRenderer = new GameObject(lineRendererName).AddComponent<LineRenderer>();
-                lineRenderer.transform.SetParent(ps.gameObject.transform, true);
-                lineRenderer.startWidth = 0.01f;
-                lineRenderer.endWidth = 0.01f;
-                lineRenderer.positionCount = 2;
-                lineRenderer.useWorldSpace = false;
-                // SetPosition not called here
-                allLineRenderers.Add(lineRenderer);
-                ps.AllEdges.Add(lineRenderer);
-                // neighborPS.AllEdges cannot be added here... should not be a problem? 
-            }
+            //// its neighboring connections will be forloop-updated after all ps generated
+            //// here we need to pre-generate the line renderers and add to ps.AllEdges to be updated later
+            //// TODO: The connection now will be generated twice: 0-1 and 1-0, thus the update function won't function normally; it actually will, but it's fixed anyway
+            //// TODO: the place where a connection is recorded under which ps might change after save&load
+            //foreach (KeyValuePair<string, float> neighbor in neighbors)
+            //{
+            //    // wait, seems like the line renderer function can be reused? 
+            //    // nvm the neighbors ain't ini'd yet
+
+            //    // trying to fix the line render update bug
+            //    // load后会有连接线在原地是因为同一个链接被生成了两次
+            //    // 这时如果说"已经有了就不再生成", 就会导致部分链接不被update, 因为update的时候遵循了父子关系
+            //    // 并不, 见下: update fail是因为neighbor.AllEdges会缺失定义. 
+            //    // 考虑先生成一遍所有星系而不管connection, 然后再来一遍, 就可以直接call InstantiateHyperspaceConnection了
+            //    string check_for_generated = neighbor.Key + " to " + ps.pointSystemID;
+            //    if (GameObject.Find(check_for_generated) != null)
+            //    {
+            //        continue;
+            //    }
+            //    string lineRendererName = ps.pointSystemID + " to " + neighbor.Key;
+            //    LineRenderer lineRenderer = new GameObject(lineRendererName).AddComponent<LineRenderer>();
+            //    lineRenderer.transform.SetParent(ps.gameObject.transform, true);
+            //    lineRenderer.startWidth = 0.01f;
+            //    lineRenderer.endWidth = 0.01f;
+            //    lineRenderer.positionCount = 2;
+            //    lineRenderer.useWorldSpace = false;
+            //    // SetPosition not called here
+            //    allLineRenderers.Add(lineRenderer);
+            //    ps.AllEdges.Add(lineRenderer);
+            //    // neighborPS.AllEdges cannot be added here... should not be a problem?
+            //    // it is a problem, it will cause the update to fail
+            //}
             origin.GetComponent<Origin>().AllStarSystems.Add(ps);
             subOriginGO.GetComponent<SubOrigin>().ClusterSystems.Add(ps);
             //Debug.Log(line);
         }
+
         foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
         {
-            UpdateConnection(ps); // now all edges will be updated, the terminalPS should be able to be assigned the found ps now
+            foreach (KeyValuePair<string, float> neighbor in ps.neighbors)
+            {
+                PointSystem neighborPS = origin.GetComponent<Origin>().AllStarSystems.Find(p => p.pointSystemID == neighbor.Key);
+                // 还是会ini两遍同一个connection, 可以在方法里加入一个不重复的判定, 但同样会导致不稳定: 从谁到谁这个记录在存档的时候可能会改变
+                InstantiateHyperspaceConnection(ps, neighborPS);
+                // 这样就不用Update Connection了? 
+            }
         }
+
+        //// 是否可以加入到这里 算了估计会出bug
+        //foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
+        //{
+        //    UpdateConnection(ps); // now all edges will be updated, the terminalPS should be able to be assigned the found ps now
+        //}
     }
 
     // disable all in-memory stats currently in Origin and others
