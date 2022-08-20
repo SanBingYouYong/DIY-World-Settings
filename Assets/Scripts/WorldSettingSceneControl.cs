@@ -12,13 +12,13 @@ public class WorldSettingSceneControl : MonoBehaviour
 {
     bool singleSceneDebug = true;
 
-    string WorldSettingFilePath;
-
     GameObject GenerateRandomClusterButton;
     GameObject starPoint;
     GameObject origin;
-    GameObject hyperspaceChannel;
 
+    /// <summary>
+    /// Fake Main Cam: VCAM focusing on it, and its movement represents the actual cam movement. 
+    /// </summary>
     public GameObject fakeMainCam;
     private Movement fakeMainCamScript;
 
@@ -32,18 +32,22 @@ public class WorldSettingSceneControl : MonoBehaviour
     Toggle moveWholeClusterToggle;
     Toggle generateNewClusterToggle;
 
+    // The Save & Load functionalities
     GameObject saveWorldConfigButton;
     string savePath;
-
     GameObject loadWorldConfigButton;
     string loadPath;
 
     PointSystem lastOriginPS;
 
+    /// <summary>
+    /// The reference to the singleton ID Generator. 
+    /// </summary>
     IdGenerator idGenerator;
 
-    List<PointSystem> allSystems;
-    //List<GameObject> starSystems;
+    /// <summary>
+    /// A record of all the line renderers, belonging to different connections. 
+    /// </summary>
     List<LineRenderer> allLineRenderers;
 
     public GameObject infoPanel;
@@ -62,8 +66,6 @@ public class WorldSettingSceneControl : MonoBehaviour
     public InputField planetCountDynamic;
     public InputField heldByDynamic;
 
-
-
     public GameObject ArrowX { get => arrowX; set => arrowX = value; }
     public GameObject ArrowY { get => arrowY; set => arrowY = value; }
     public GameObject ArrowZ { get => arrowZ; set => arrowZ = value; }
@@ -76,14 +78,13 @@ public class WorldSettingSceneControl : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        // following can be changed to editor-oriented drag and drops: 
         GenerateRandomClusterButton = GameObject.Find("GenerateRandomClusterButton");
         GenerateRandomClusterButton.GetComponent<Button>().onClick.AddListener(GenerateRandomCluster);
 
-        starPoint = Resources.Load("StarPoint") as GameObject; // cause I'm too lazy to drag and drop
+        starPoint = Resources.Load("StarPoint") as GameObject;
 
         origin = GameObject.Find("origin");
-
-        hyperspaceChannel = Resources.Load("HyperspaceChannel") as GameObject;
 
         ArrowX = Resources.Load("Arrow_X") as GameObject;
         ArrowY = Resources.Load("Arrow_Y") as GameObject;
@@ -93,7 +94,6 @@ public class WorldSettingSceneControl : MonoBehaviour
 
         newStarPointClicked = false;
 
-        // necessity doubtful;
         MoveWholeClusterToggle = GameObject.Find("MoveWholeClusterToggle").GetComponent<Toggle>();
         generateNewClusterToggle = GameObject.Find("GenerateNewClusterToggle").GetComponent<Toggle>();
 
@@ -105,15 +105,9 @@ public class WorldSettingSceneControl : MonoBehaviour
 
         idGenerator = IdGenerator.getIdGenerator();
 
-        //allSystems = new List<PointSystem>();
-        //starSystems = new List<GameObject>();
         allLineRenderers = new List<LineRenderer>();
-        // hopefully they stay as reference
-        //starSystemNameDynamic = GameObject.Find("StarSystemNameDynamic").GetComponent<Text>();
-        //starTypeDynamic = GameObject.Find("StarTypeDynamic").GetComponent<Text>();
-        //planetCountDynamic = GameObject.Find("PlanetCountDynamic").GetComponent<Text>();
-        //heldByDynamic = GameObject.Find("HeldByDynamic").GetComponent<Text>();
 
+        // TODO: reconsider the modes design; works for now actually
         if (!singleSceneDebug)
         {
             // disable loading while working on independent functionalities
@@ -124,23 +118,13 @@ public class WorldSettingSceneControl : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //if (Input.GetMouseButtonDown(0))  // empty click
-        //{
-        //    if (lastOriginPS != null)
-        //    {
-        //        lastOriginPS.DestroyArrows();
-        //    }
-        //}
-        // destroying arrows on older clicks
-        // update: moved the generating part to here as well: so that we can keep track of user clicking on arrows? 
-        // will try adding scripts to arrows first... 
         if (newStarPointClicked)
         {
             if (!infoPanel.activeSelf)
             {
-                infoPanel.SetActive(true);
+                infoPanel.SetActive(true); // make visible the info panel
             }
-            PointSystem clickedPS = lastOriginPS; //TODO:  won't avoid null exception tho, needs testing
+            PointSystem clickedPS = lastOriginPS; //TODO:  won't avoid null exception tho? needs testing
             foreach (PointSystem PS in origin.GetComponent<Origin>().AllStarSystems)
             {
                 // if not left alone, this will destroy the new arrows as well... 
@@ -154,48 +138,51 @@ public class WorldSettingSceneControl : MonoBehaviour
                 }
             }
             newStarPointClicked = false;
-            // after the arrow cleaning and rendering process, following is updating the info panel on the new clicked/chosen point system
-            // maybe can change GO Dynamic to Text Dynamic.text?
-            // but not sure if we want to touch on the gameObject itself later; 
-            // oh anyway, component can locate their gameObject.. 
+            // after the arrow cleaning and rendering process,
+            //     following is updating the info panel on the new clicked/chosen point system
             starSystemNameDynamic.text = clickedPS.StarSystemName;
-            starTypeDynamic.text = clickedPS.StarType.ToString(); // may need a customized to string method
+            starTypeDynamic.text = clickedPS.StarType.ToString(); // TODO: may need a customized to string method
             planetCountDynamic.text = clickedPS.PlanetCount.ToString();
             heldByDynamic.text = clickedPS.Holder;
-            fakeMainCamScript.moving = true; // to unlock cam when first clicked on a new ps
+            // to unlock cam when first clicked on a new ps: 
+            fakeMainCamScript.moving = true;
         }
-        // TODO: in Update: check if any starpoint's position changed; if so, update connection - the line renderer
     }
 
     void LoadWorld()
     {
-        if (GameObject.Find("SceneManagerControl").GetComponent<SceneManagerControl>().Mode == SceneManagerControl.LoadMode.LoadSavedWorld)
+        if (GameObject.Find("SceneManagerControl").GetComponent<SceneManagerControl>().Mode == 
+            SceneManagerControl.LoadMode.LoadSavedWorld)
         {
-            //this.WorldSettingFilePath = GameObject.Find("SceneManagerControl").GetComponent<SceneManagerControl>().WorldSettingsFilePath;
-            //Debug.Log("Loading Specified World Setting: " + WorldSettingFilePath);
-            //// load the specified world setting, so other functionality can build on it
             LoadWorldConfigFromCsv();
         }
         else
         {
-            // create a blank file? 
+            // TODO: create a blank file for autosaves; the autosave functionality isn't very prioritized
             Debug.Log("Building on Brand New World");
         }
     }
 
+    /// <summary>
+    /// The manual update method of the overview panel. 
+    /// It depopulates the current contents first, and then rebuild the contents with info from origin.AllStarSystems
+    /// </summary>
     void PopulateOverviewScroll()
     {
         DepopulateOverviewScroll();
         scrollview.SetActive(true);
         foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
         {
-            var item = Instantiate(overviewContentItem) as GameObject;
+            var item = Instantiate(overviewContentItem);
             item.transform.SetParent(scrollviewContent.transform, false);
             item.GetComponent<OverviewItem>().UpdateStats(ps);
             item.GetComponent<OverviewItem>().ps = ps;
         }
     }
 
+    /// <summary>
+    /// Depopulates by destroying all the children GameObject under scrollview's "Content"
+    /// </summary>
     void DepopulateOverviewScroll()
     {
         foreach (Transform child in scrollviewContent.transform)
@@ -204,23 +191,27 @@ public class WorldSettingSceneControl : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Make the camera focus to a new GameObject. 
+    /// Involves the movement of fake camera and the setting of Follow and LookAt of vcam. 
+    /// </summary>
+    /// <param name="tr">The target GameObject's Transform. </param>
     public void FocusToGO(Transform tr)
     {
-        //vcam.enabled = true;
+        // TODO: use a Coroutine to make the transition smooth; 
+        // tried several approaches for smooth transitions: 
         //fakeMainCam.transform.position = Vector3.Lerp(fakeMainCam.transform.position, tr.position, Time.deltaTime * fakeMainCamScript.speed);
         //fakeMainCam.transform.position = Vector3.MoveTowards(fakeMainCam.transform.position, tr.position, )
         vcam.Follow = tr;
         vcam.LookAt = tr;
         fakeMainCam.transform.position = tr.position;
-        // TODO: use a Coroutine to make the transition smooth; 
         vcam.Follow = fakeMainCam.transform;
         vcam.LookAt = fakeMainCam.transform;
-        //Debug.Log("vcam following: " + tr.name);
-        //vcam.enabled = false;
     }
 
-    //public PointSystem FindPSWithName
-
+    /// <summary>
+    /// Currently only a middleout implementation is available. 
+    /// </summary>
     void GenerateRandomCluster()
     {
         Debug.Log("Generating Random Cluster");
@@ -231,45 +222,46 @@ public class WorldSettingSceneControl : MonoBehaviour
         // np.random.uniform(-20, 20, size=(n,2))
         // now implementing: check doc
         middleOut();
-        //instantiateStarSystems();
-        //UpdateConnection();
         PopulateOverviewScroll();
-        //vcam.GetComponent<CinemachineVirtualCam>().
-        //vcam.Follow = origin.transform;
     }
 
-    // originally only a generation method, now comes with model instantiation
-    private void middleOut( int maxNeighbors = 5, // well it's more like "max" but not absolute max
+    /// <summary>
+    /// Cluster generation and model instantiation. Check the doc for a detailed algorithmic description. 
+    /// TODO: User can choose to limit the z-variance, if they want it in 2D. 
+    /// </summary>
+    /// <param name="maxNeighbors">"max" but not absolute max</param>
+    /// <param name="maxDisplacement"></param>
+    /// <param name="meanRandomDisturb"></param>
+    /// <param name="maxCost"></param>
+    /// <param name="totalSystems"></param>
+    private void middleOut( int maxNeighbors = 5,
                             float maxDisplacement = 10f,
                             float meanRandomDisturb = 0.0f,
                             float maxCost = 10f,
                             int totalSystems = 10)
     {
-        // user can choose to limit the z-variance? so that if they want it in 2D or 3D
-        //GameObject newSystem = Instantiate(starSystem, origin.transform, false) as GameObject;
-        //newSystem.transform.localPosition = new Vector3(0f, 0f, 0f);
-        //var x = new PointSystem();
-
+        // contours: acts like a queue: new systems that need to be expanded on get added to it,
+        //     and in the while loop, the first element is in use and then gets poped out, until the counter stops the process. 
         List<PointSystem> contours = new List<PointSystem>();
-        // get "generate new origin" toggle.isOn and determine whether to generate new origin, or to use the last origin as current origin;
+        // Determine whether to generate new origin, or to use the last origin as current origin;
         // note: id == 0 doesn't mean it's the current origin
+        // note: origin is not touched. SubOrigins, the children of origin, are in charge of the job. 
         GameObject activeSubOriginGO;
-        if (generateNewClusterToggle.isOn)  // TODO: origin cannot be moved: generate and move the sub-origin everytime! 
+        if (generateNewClusterToggle.isOn)
         {
-            //PointSystem firstSystem = new PointSystem();  // changed to below
-
             SubOrigin newSubOriginSO;
             InitializeNewSubOrigin(out activeSubOriginGO, out newSubOriginSO);
             InitializeNewFirstSystem(contours, activeSubOriginGO, newSubOriginSO);
         }
         else
         {
-            contours.Add(lastOriginPS);  // TODO: configure like above, the new sub origin thing
-            // ugly... 
+            contours.Add(lastOriginPS);
+            // find the correct sub origin; 
             activeSubOriginGO = origin.GetComponent<Origin>().SubOrigins.Find(so => so.SubOriginID == lastOriginPS.SubOriginID).gameObject;
         }
+        // TODO: give user the choice to determine which sub origin they want to add to exactly. 
 
-        int counter = 1;
+        int counter = 1; // first system has been ini'd, so 1 instead of 0
         while (counter < totalSystems)
         {
             PointSystem currentOrigin = contours[0];
@@ -279,37 +271,31 @@ public class WorldSettingSceneControl : MonoBehaviour
             {
                 num_neighbors = 1;
             }
-            
             float originX = currentOrigin.x;
             float originY = currentOrigin.y;
             float originZ = currentOrigin.z;
-
+            // pop: 
             contours.RemoveAt(0);
+            // Generate neighbors for the current PS: 
             for (int i = 0; i < num_neighbors; i++)
             {
-                //PointSystem newNeighbor = new PointSystem();
-
                 GameObject newNeighbor;
                 PointSystem newNeighborPS;
-
                 InitializeNewNeighbor(activeSubOriginGO, currentOrigin, out newNeighbor, out newNeighborPS);
-                AssignStatsToNewNeighbor(maxDisplacement, meanRandomDisturb, maxCost, currentOrigin, originX, originY, originZ, newNeighbor, newNeighborPS);
-
-                //origin.GetComponent<Origin>().AllStarSystems.Add(newNeighborPS); // added already in IntializeNewNeighbor
+                AssignStatsToNewNeighbor(maxDisplacement, meanRandomDisturb, maxCost, currentOrigin, 
+                                            originX, originY, originZ, newNeighbor, newNeighborPS);
                 contours.Add(newNeighborPS);
-                //Debug.Log(newNeighbor.id);
-
                 // a forced update on origin pos
+                // to sync the actual position and the recorded position. 
                 currentOrigin.SetCoordinate(currentOrigin.gameObject.transform.position);
                 newNeighborPS.SetCoordinate(newNeighborPS.gameObject.transform.position);
                 // above fix is ugly: still needs to figure out a way to update on all PS if moving all; 
                 // update: check TODO in Arrow.cs: OnMouseUp needs to notify all if moving all together! 
-
+                // update: now the sub origin is moved, so its children get moved as a whole too. 
                 InstantiateHyperspaceConnection(currentOrigin, newNeighborPS);
             }
             counter += num_neighbors;
         }
-        //Debug.Log(allSystems.ToArray().Length);
     }
 
     private void InstantiateHyperspaceConnection(PointSystem currentOrigin, PointSystem newNeighborPS)
@@ -398,44 +384,44 @@ public class WorldSettingSceneControl : MonoBehaviour
         origin.GetComponent<Origin>().SubOrigins.Add(newSubOriginSO);
     }
 
-    // originally to be used with middleout, now latter is in charge of instantiation, former is changed to
-    // update the connections when user edits the hyperspace channel connectivities
-    // I'll archieve this, and add a new function UpdateConnection()
-    private void instantiateStarSystems()
-    {
+    //// originally to be used with middleout, now latter is in charge of instantiation, former is changed to
+    //// update the connections when user edits the hyperspace channel connectivities
+    //// I'll archieve this, and add a new function UpdateConnection()
+    //private void instantiateStarSystems()
+    //{
         
-        // generate star systems and connections
-        List<(string, string)> generatedConnection = new List<(string, string)>();
-        foreach (PointSystem pointSystem in allSystems)
-        {
-            // 加入随机生成不同的星系贴图/模型功能
-            // 看看unity怎么实现类似群星的发光小球代表星系
-            // 我tm直接sphere+emission
-            //GameObject newSystem = Instantiate(starPoint, origin.transform, false) as GameObject;
-            //newSystem.transform.localPosition = new Vector3(pointSystem.x, pointSystem.y, pointSystem.z);
-            //pointSystem.systemInstance = newSystem; // assign GameObject reference; 
-            //starSystems.Add(newSystem);
-            // generate connections and add to the list:
-            foreach (string neighborID in pointSystem.neighbors.Keys)
-            {
-                string lineRendererName = pointSystem.pointSystemID + " to " + neighborID;
-                // prepare the line renderer for hyperspace channels: 
-                LineRenderer lineRenderer = new GameObject(lineRendererName).AddComponent<LineRenderer>();
-                lineRenderer.startColor = Color.black;
-                lineRenderer.endColor = Color.black;
-                lineRenderer.startWidth = 0.01f;
-                lineRenderer.endWidth = 0.01f;
-                lineRenderer.positionCount = 2;
-                lineRenderer.useWorldSpace = true; // doubtful
-                PointSystem neighborSys = allSystems.Find(sys => sys.pointSystemID == neighborID);  // maybe change allSys to Dict for faster lookup?
-                Vector3 startingSysLoc = new Vector3(pointSystem.x, pointSystem.y, pointSystem.z);
-                Vector3 endingSysLoc = new Vector3(neighborSys.x, neighborSys.y, neighborSys.z);
-                lineRenderer.SetPosition(0, startingSysLoc);
-                lineRenderer.SetPosition(1, endingSysLoc);
-            }
-        }
+    //    // generate star systems and connections
+    //    List<(string, string)> generatedConnection = new List<(string, string)>();
+    //    foreach (PointSystem pointSystem in allSystems)
+    //    {
+    //        // 加入随机生成不同的星系贴图/模型功能
+    //        // 看看unity怎么实现类似群星的发光小球代表星系
+    //        // 我tm直接sphere+emission
+    //        //GameObject newSystem = Instantiate(starPoint, origin.transform, false) as GameObject;
+    //        //newSystem.transform.localPosition = new Vector3(pointSystem.x, pointSystem.y, pointSystem.z);
+    //        //pointSystem.systemInstance = newSystem; // assign GameObject reference; 
+    //        //starSystems.Add(newSystem);
+    //        // generate connections and add to the list:
+    //        foreach (string neighborID in pointSystem.neighbors.Keys)
+    //        {
+    //            string lineRendererName = pointSystem.pointSystemID + " to " + neighborID;
+    //            // prepare the line renderer for hyperspace channels: 
+    //            LineRenderer lineRenderer = new GameObject(lineRendererName).AddComponent<LineRenderer>();
+    //            lineRenderer.startColor = Color.black;
+    //            lineRenderer.endColor = Color.black;
+    //            lineRenderer.startWidth = 0.01f;
+    //            lineRenderer.endWidth = 0.01f;
+    //            lineRenderer.positionCount = 2;
+    //            lineRenderer.useWorldSpace = true; // doubtful
+    //            PointSystem neighborSys = allSystems.Find(sys => sys.pointSystemID == neighborID);  // maybe change allSys to Dict for faster lookup?
+    //            Vector3 startingSysLoc = new Vector3(pointSystem.x, pointSystem.y, pointSystem.z);
+    //            Vector3 endingSysLoc = new Vector3(neighborSys.x, neighborSys.y, neighborSys.z);
+    //            lineRenderer.SetPosition(0, startingSysLoc);
+    //            lineRenderer.SetPosition(1, endingSysLoc);
+    //        }
+    //    }
 
-    }
+    //}
 
     // default is to render the hyperspace channels
     // forget that
