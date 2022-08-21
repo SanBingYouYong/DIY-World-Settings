@@ -298,9 +298,14 @@ public class WorldSettingSceneControl : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Given two connected and initiated point system, render the connection between them. 
+    /// Add line renderer, set position and add to allLineRenderers;
+    /// </summary>
+    /// <param name="currentOrigin">from ps</param>
+    /// <param name="newNeighborPS">to ps</param>
     private void InstantiateHyperspaceConnection(PointSystem currentOrigin, PointSystem newNeighborPS)
     {
-        // Generate Connection : add line renderer, set position and add to allLineRenderers;
         string lineRendererName = currentOrigin.pointSystemID + " to " + newNeighborPS.pointSystemID;
         // prepare the line renderer for hyperspace channels: 
         // add as the child of the outgoing star point, the "current origin"
@@ -314,20 +319,27 @@ public class WorldSettingSceneControl : MonoBehaviour
         Vector3 endingSysLoc = new Vector3(newNeighborPS.x, newNeighborPS.y, newNeighborPS.z);
         lineRenderer.SetPosition(0, startingSysLoc);
         lineRenderer.SetPosition(1, endingSysLoc);
-        allLineRenderers.Add(lineRenderer);  // how to locate the actual line renderer? 
-                                             // updating connection will now take O(n) time if Find() is used? 
-                                             // I'll leave optimisation to later
-                                             // update: will have a field in PS, holding its outgoing edges
-                                             // but they are already moving with the star (parent/child)
-                                             // 
-                                             // update: now every PS holds the list of all edges that has something to do with it; 
-                                             // thus when this PS is moved alone, all edges can be updated
+        allLineRenderers.Add(lineRenderer); 
         currentOrigin.AllEdges.Add(lineRenderer);
         newNeighborPS.AllEdges.Add(lineRenderer);
         // the allLineRenders is still reserved, as this is the actual "whole list" - those from PS will have overlap
     }
 
-    private void AssignStatsToNewNeighbor(float maxDisplacement, float meanRandomDisturb, float maxCost, PointSystem currentOrigin, float originX, float originY, float originZ, GameObject newNeighbor, PointSystem newNeighborPS)
+    /// <summary>
+    /// Given several parameters, generate and set property of a new neighboring PS
+    /// </summary>
+    /// <param name="maxDisplacement"></param>
+    /// <param name="meanRandomDisturb"></param>
+    /// <param name="maxCost"></param>
+    /// <param name="currentOrigin">the ps that generated this new neighbor</param>
+    /// <param name="originX"></param>
+    /// <param name="originY"></param>
+    /// <param name="originZ"></param>
+    /// <param name="newNeighbor"></param>
+    /// <param name="newNeighborPS"></param>
+    private void AssignStatsToNewNeighbor(float maxDisplacement, float meanRandomDisturb, float maxCost, 
+                                            PointSystem currentOrigin, float originX, float originY, float originZ, 
+                                            GameObject newNeighbor, PointSystem newNeighborPS)
     {
         // calculate displacement from current origin
         newNeighborPS.x = originX + Random.Range(-1f, 1f) * maxDisplacement + Random.Range(-1f, 1f) * meanRandomDisturb;
@@ -342,38 +354,48 @@ public class WorldSettingSceneControl : MonoBehaviour
         currentOrigin.neighbors.Add(newNeighborPS.pointSystemID, distance); // may add support for inconsistent cost when direction is reversed; 
     }
 
+    /// <summary>
+    /// Given an initialized ps with its sub origin, instantiate a new neighbor and 
+    ///     add it to origin and sub origin's list of all star systems
+    /// </summary>
+    /// <param name="activeSubOriginGO"></param>
+    /// <param name="currentOrigin">the ps that this new neighbor belongs to</param>
+    /// <param name="newNeighbor"></param>
+    /// <param name="newNeighborPS"></param>
     private void InitializeNewNeighbor(GameObject activeSubOriginGO, PointSystem currentOrigin, out GameObject newNeighbor, out PointSystem newNeighborPS)
     {
         newNeighbor = Instantiate(starPoint, activeSubOriginGO.transform, false);
-        //newNeighborPS = newNeighbor.AddComponent<PointSystem>();
         newNeighborPS = newNeighbor.GetComponent<PointSystem>();
         newNeighborPS.pointSystemID = idGenerator.getNextPointSystemID();
         newNeighborPS.SubOriginID = currentOrigin.SubOriginID;
-        // better add them after all operations complete, above
-        // but above does not have reference to them... 
-        // add to origin and suborigin
         origin.GetComponent<Origin>().AllStarSystems.Add(newNeighborPS);
         activeSubOriginGO.GetComponent<SubOrigin>().ClusterSystems.Add(newNeighborPS);
     }
 
+    /// <summary>
+    /// Given a sub origin, generate the first system in the cluster and adds it the contour for neighbor generation. 
+    /// </summary>
+    /// <param name="contours">the object ref to the list of contours</param>
+    /// <param name="activeSubOriginGO"></param>
+    /// <param name="newSubOriginSO">This param can be replaced with a manual extraction from the soGO but anyway</param>
     private void InitializeNewFirstSystem(List<PointSystem> contours, GameObject activeSubOriginGO, SubOrigin newSubOriginSO)
     {
         GameObject firstSystem = Instantiate(starPoint, activeSubOriginGO.transform, false);
-        //PointSystem firstSystemPS = firstSystem.AddComponent<PointSystem>();
         PointSystem firstSystemPS = firstSystem.GetComponent<PointSystem>();
         firstSystemPS.pointSystemID = idGenerator.getNextPointSystemID();
-        firstSystemPS.SubOriginID = newSubOriginSO.SubOriginID;  // to make it consistent, I know it's the same
-                                                                 // remember to apply the xyz in PS to GO!!!
+        firstSystemPS.SubOriginID = newSubOriginSO.SubOriginID;
         firstSystemPS.SetCoordinate();  // note that the default is 000 in this method, but the default in PS ini is -1;
-
-        // TODO: move allSystems from here to Origin., well and subOrigin
-        //allSystems.Add(firstSystemPS);
         origin.GetComponent<Origin>().AllStarSystems.Add(firstSystemPS);
         newSubOriginSO.ClusterSystems.Add(firstSystemPS);
         contours.Add(firstSystemPS);
         lastOriginPS = firstSystemPS;
     }
 
+    /// <summary>
+    /// Initialize the sub origin for the cluster to be generated. 
+    /// </summary>
+    /// <param name="activeSubOriginGO"></param>
+    /// <param name="newSubOriginSO"></param>
     private void InitializeNewSubOrigin(out GameObject activeSubOriginGO, out SubOrigin newSubOriginSO)
     {
         string newSubOriginID = idGenerator.getNextSubOriginID();
@@ -384,114 +406,55 @@ public class WorldSettingSceneControl : MonoBehaviour
         origin.GetComponent<Origin>().SubOrigins.Add(newSubOriginSO);
     }
 
-    //// originally to be used with middleout, now latter is in charge of instantiation, former is changed to
-    //// update the connections when user edits the hyperspace channel connectivities
-    //// I'll archieve this, and add a new function UpdateConnection()
-    //private void instantiateStarSystems()
-    //{
-        
-    //    // generate star systems and connections
-    //    List<(string, string)> generatedConnection = new List<(string, string)>();
-    //    foreach (PointSystem pointSystem in allSystems)
-    //    {
-    //        // 加入随机生成不同的星系贴图/模型功能
-    //        // 看看unity怎么实现类似群星的发光小球代表星系
-    //        // 我tm直接sphere+emission
-    //        //GameObject newSystem = Instantiate(starPoint, origin.transform, false) as GameObject;
-    //        //newSystem.transform.localPosition = new Vector3(pointSystem.x, pointSystem.y, pointSystem.z);
-    //        //pointSystem.systemInstance = newSystem; // assign GameObject reference; 
-    //        //starSystems.Add(newSystem);
-    //        // generate connections and add to the list:
-    //        foreach (string neighborID in pointSystem.neighbors.Keys)
-    //        {
-    //            string lineRendererName = pointSystem.pointSystemID + " to " + neighborID;
-    //            // prepare the line renderer for hyperspace channels: 
-    //            LineRenderer lineRenderer = new GameObject(lineRendererName).AddComponent<LineRenderer>();
-    //            lineRenderer.startColor = Color.black;
-    //            lineRenderer.endColor = Color.black;
-    //            lineRenderer.startWidth = 0.01f;
-    //            lineRenderer.endWidth = 0.01f;
-    //            lineRenderer.positionCount = 2;
-    //            lineRenderer.useWorldSpace = true; // doubtful
-    //            PointSystem neighborSys = allSystems.Find(sys => sys.pointSystemID == neighborID);  // maybe change allSys to Dict for faster lookup?
-    //            Vector3 startingSysLoc = new Vector3(pointSystem.x, pointSystem.y, pointSystem.z);
-    //            Vector3 endingSysLoc = new Vector3(neighborSys.x, neighborSys.y, neighborSys.z);
-    //            lineRenderer.SetPosition(0, startingSysLoc);
-    //            lineRenderer.SetPosition(1, endingSysLoc);
-    //        }
-    //    }
-
-    //}
-
-    // default is to render the hyperspace channels
-    // forget that
+    /// <summary>
+    /// Update the target ps's connection (edges) after the ps has been moved to a new location. 
+    /// </summary>
+    /// <param name="ps"></param>
     public void UpdateConnection(PointSystem ps)
     {
-        //ps.transform.FindChild
         Debug.Log("Updating connection at Point System: " + ps.pointSystemID);
-        //foreach (Transform child in ps.gameObject.transform) // 看起来需要遍历全部？如果能作为field存起来似乎可以避免
-        //{
-        //    if (child.gameObject.name.Contains(" to "))
-        //    {
-        //        // find the terminal star system
-        //        string terminalID = child.gameObject.name[child.gameObject.name.Length - 1].ToString();
-        //        Debug.Log("Updating to terminal ID: " + terminalID);
-        //        // locate the sub origin, then locate the terminal; should be faster than finding in all sys in origin? 
-        //        SubOrigin terminalSO = origin.GetComponent<Origin>().SubOrigins.Find(so => so.subOriginID == ps.SubOriginID);
-        //        PointSystem terminalPS = terminalSO.ClusterSystems.Find(ps => ps.pointSystemID == terminalID);
-        //        child.GetComponent<LineRenderer>().SetPosition(0, ps.transform.position);
-        //        child.GetComponent<LineRenderer>().SetPosition(1, terminalPS.gameObject.transform.position);
-        //        // 更新失败，因为line renderer用的是世界坐标？
-        //        // 考虑把line renderer放到上一级sub origin里了，不作为当前星系的child存在
-        //        // 成功了，让line renderer使用了世界坐标，现在发现另一端也需要更新
-        //    }
-        //}
         foreach (LineRenderer lr in ps.AllEdges)
         {
-            // this will mess up the direction, but now it's undirected anyway, well the child relationship means nothing now
+            // this might or might not mess up the direction, but now it's undirected anyway, well the child relationship means nothing now
             // but they are now using world pos anyway
             // TODO: move all line renderers to suborigin maybe
-            // find the terminals
-            // TODO: change all these name based ID finding method! this will cause NTR since 1 and 13 now are the same !!!!! 
-            //string terminalID = lr.gameObject.name[0].ToString();
             (string firstID, string secondID) = GetTerminalsByChannelName(lr.gameObject.name);
-            // find the sub origin this is all happening: well after we blur the gap between sub origins, this might need refactoring, fuck
+            // find the sub origin this is all happening
             SubOrigin terminalSO = origin.GetComponent<Origin>().SubOrigins.Find(so => so.subOriginID == ps.SubOriginID);
             if (firstID == ps.pointSystemID)
             {
-                // then it's the right order
-                //lr.SetPosition(0, ps.gameObject.transform.localPosition);
-                // this is from world to local: line renderer is using local position, thus converting from world to local! 
+                // line renderer is using local position, thus converting from world to local
                 lr.SetPosition(0, lr.transform.InverseTransformPoint(ps.gameObject.transform.position));
-                //firstID = lr.gameObject.name[lr.gameObject.name.Length - 1].ToString(); // fuck this... why did it work??? 
                 // find the terminal PS
                 //PointSystem terminalPS = terminalSO.ClusterSystems.Find(ps => ps.pointSystemID == firstID);
-                PointSystem terminalPS = origin.GetComponent<Origin>().AllStarSystems.Find(ps => ps.pointSystemID == secondID); // changed from firstID above to now
+                //PointSystem terminalPS = origin.GetComponent<Origin>().AllStarSystems.Find(ps => ps.pointSystemID == secondID);
+                // changed from a all system search to a suborigin search
+                PointSystem terminalPS = terminalSO.ClusterSystems.Find(ps => ps.pointSystemID == secondID);
                 if (terminalPS == null)
                 {
                     Debug.Log("Failed to find terminal PS with ID " + secondID + "; pairing with " + firstID);
                 }
-                //lr.SetPosition(1, terminalPS.gameObject.transform.localPosition);
                 lr.SetPosition(1, lr.transform.InverseTransformPoint(terminalPS.gameObject.transform.position));
             }
-            else
+            else // then it's the in-going edge
             {
-                // then it's the in-going edge
-                // do we actually need the 0 pos update? anyway
+                // do we actually need the lr pos 0 update? anyway
                 PointSystem terminalPS = terminalSO.ClusterSystems.Find(ps => ps.pointSystemID == firstID);
                 if (terminalPS == null)
                 {
                     Debug.Log("Terminal PS Not Found: " + firstID);
                 }
-                //lr.SetPosition(0, terminalPS.gameObject.transform.localPosition);
                 lr.SetPosition(0, lr.transform.InverseTransformPoint(terminalPS.gameObject.transform.position));
-                //lr.SetPosition(1, ps.gameObject.transform.localPosition);
                 lr.SetPosition(1, lr.transform.InverseTransformPoint(ps.gameObject.transform.position));
             }
-            // well this maybe does not mess up the direction
         }
     }
 
+    /// <summary>
+    /// e.g. input: "10 to 15"; output: ("10", "15")
+    /// </summary>
+    /// <param name="channelName"></param>
+    /// <returns></returns>
     private (string,string) GetTerminalsByChannelName(string channelName)
     {
         var splits = channelName.Split(' ');
@@ -500,35 +463,21 @@ public class WorldSettingSceneControl : MonoBehaviour
         return (splits[0], splits[splits.Length - 1]);
     }
 
+    // Save and Load methods and coroutines: 
+
+    private void SaveWorldConfigToCsv()
+    {
+        StartCoroutine(ShowSaveDialogCoroutine());
+    }
+
     IEnumerator ShowSaveDialogCoroutine()
     {
         yield return FileBrowser.WaitForSaveDialog(FileBrowser.PickMode.Files);
         if (FileBrowser.Success)
         {
             savePath = FileBrowser.Result[0];
-            //Debug.Log(FileBrowser.Result);
             SaveWorldConfigToCsvAfterSaveDialog();
         }
-    }
-
-    // TODO: read world setting from such a csv file
-    private void SaveWorldConfigToCsv()
-    {
-        StartCoroutine(ShowSaveDialogCoroutine());
-        // only save the list allStarSystems for now
-        //string tempPath = "Assets/Resources/tempSave.csv";
-        //string tempPath = savePath;
-        //StreamWriter writer = new StreamWriter(tempPath, false, System.Text.Encoding.UTF8); // to the file path, overwrites, utf-8 encoding
-        //Debug.Log("writer initialized");
-        //// insert some identification data first? like name of this world blablabla
-        //foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
-        //{
-        //    Debug.Log("writing new ps");
-        //    writer.WriteLine(ps.ToCsvString());
-        //}
-        //Debug.Log("writing done");
-        //writer.Close();
-        //Debug.Log("writer closed");
     }
 
     private void SaveWorldConfigToCsvAfterSaveDialog()
@@ -537,6 +486,7 @@ public class WorldSettingSceneControl : MonoBehaviour
         StreamWriter writer = new StreamWriter(tempPath, false, System.Text.Encoding.UTF8); // to the file path, overwrites, utf-8 encoding
         Debug.Log("writer initialized");
         // insert some identification data first? like name of this world blablabla
+        // TODO: adds support for custom star types, like a header claiming all enum types of startype
         foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
         {
             Debug.Log("writing new ps");
@@ -547,32 +497,30 @@ public class WorldSettingSceneControl : MonoBehaviour
         Debug.Log("writer closed");
     }
 
-    IEnumerator ShowLoadDialogCoroutine()
-    {
-        yield return FileBrowser.WaitForLoadDialog(FileBrowser.PickMode.Files);
-        if (FileBrowser.Success)
-        {
-            loadPath = FileBrowser.Result[0];
-            //Debug.Log(FileBrowser.Result);
-            LoadWorldConfigFromCsvAfterLoadDialog();
-        }
-    }
-
     private void LoadWorldConfigFromCsv()
     {
         StartCoroutine(ShowLoadDialogCoroutine());
 
     }
 
+    IEnumerator ShowLoadDialogCoroutine()
+    {
+        yield return FileBrowser.WaitForLoadDialog(FileBrowser.PickMode.Files);
+        if (FileBrowser.Success)
+        {
+            loadPath = FileBrowser.Result[0];
+            LoadWorldConfigFromCsvAfterLoadDialog();
+        }
+    }
+
+    /// <summary>
+    /// Destroys the current world and load the selected new one. 
+    /// </summary>
     private void LoadWorldConfigFromCsvAfterLoadDialog()
     {
 
         DestroyCurrentWorldSetting();
-
-
-        // using fixed tempSave to test on functionalities now
         // TODO: add a backup functionality, since now the whole save will be overwritten
-        //string tempPath = "Assets/Resources/tempSave.csv";
         string tempPath = loadPath;
         StreamReader reader = new StreamReader(tempPath, true);
         while (!reader.EndOfStream)
@@ -589,16 +537,14 @@ public class WorldSettingSceneControl : MonoBehaviour
             string holder = line[8];
             var skimForNeighbors = line.Skip(9); // 8 + 1 for indexing from 0 // always cast invalid: IEnumerable to any, idk why, left it as var
             Queue<string> neighborsLine = new Queue<string>(skimForNeighbors);
-            //Dictionary<string, float> neighbors = neighborsLine.ToDictionary<string, float>(x => neighborsLine.Dequeue(), y => float.Parse(neighborsLine.Dequeue()));
             Dictionary<string, float> neighbors = new Dictionary<string, float>();
             while (neighborsLine.Count >= 2)
             {
                 neighbors.Add(neighborsLine.Dequeue(), float.Parse(neighborsLine.Dequeue()));
-                //neighbors.Add(neighborsLine[0], float.Parse(neighborsLine[1]));
-                //neighborsLine.RemoveRange(0, 2);
             }
 
             GameObject subOriginGO;
+            // get the sub origin, if there isn't one matching the id, create a new one: 
             if (origin.GetComponent<Origin>().SubOrigins.Any(so => so.subOriginID == soID))
             {
                 subOriginGO = origin.GetComponent<Origin>().SubOrigins.Find(so => so.subOriginID == soID).gameObject;
@@ -611,8 +557,8 @@ public class WorldSettingSceneControl : MonoBehaviour
                 subOriginGO.transform.SetParent(origin.transform, false);
                 origin.GetComponent<Origin>().SubOrigins.Add(subOrigin);
             }
+            // create a corresponding ps
             GameObject psGO = Instantiate(starPoint, subOriginGO.transform, false);
-            //PointSystem ps = psGO.AddComponent<PointSystem>(); // now the prefab has the script on it itself; 
             PointSystem ps = psGO.GetComponent<PointSystem>();
             ps.pointSystemID = psID;
             ps.SubOriginID = soID;
@@ -623,41 +569,8 @@ public class WorldSettingSceneControl : MonoBehaviour
             ps.Holder = holder;
             ps.neighbors = neighbors; // TODO: maybe a deep copy? 
             psGO.transform.localPosition = new Vector3(x, y, z);
-            //// its neighboring connections will be forloop-updated after all ps generated
-            //// here we need to pre-generate the line renderers and add to ps.AllEdges to be updated later
-            //// TODO: The connection now will be generated twice: 0-1 and 1-0, thus the update function won't function normally; it actually will, but it's fixed anyway
-            //// TODO: the place where a connection is recorded under which ps might change after save&load
-            //foreach (KeyValuePair<string, float> neighbor in neighbors)
-            //{
-            //    // wait, seems like the line renderer function can be reused? 
-            //    // nvm the neighbors ain't ini'd yet
-
-            //    // trying to fix the line render update bug
-            //    // load后会有连接线在原地是因为同一个链接被生成了两次
-            //    // 这时如果说"已经有了就不再生成", 就会导致部分链接不被update, 因为update的时候遵循了父子关系
-            //    // 并不, 见下: update fail是因为neighbor.AllEdges会缺失定义. 
-            //    // 考虑先生成一遍所有星系而不管connection, 然后再来一遍, 就可以直接call InstantiateHyperspaceConnection了
-            //    string check_for_generated = neighbor.Key + " to " + ps.pointSystemID;
-            //    if (GameObject.Find(check_for_generated) != null)
-            //    {
-            //        continue;
-            //    }
-            //    string lineRendererName = ps.pointSystemID + " to " + neighbor.Key;
-            //    LineRenderer lineRenderer = new GameObject(lineRendererName).AddComponent<LineRenderer>();
-            //    lineRenderer.transform.SetParent(ps.gameObject.transform, true);
-            //    lineRenderer.startWidth = 0.01f;
-            //    lineRenderer.endWidth = 0.01f;
-            //    lineRenderer.positionCount = 2;
-            //    lineRenderer.useWorldSpace = false;
-            //    // SetPosition not called here
-            //    allLineRenderers.Add(lineRenderer);
-            //    ps.AllEdges.Add(lineRenderer);
-            //    // neighborPS.AllEdges cannot be added here... should not be a problem?
-            //    // it is a problem, it will cause the update to fail
-            //}
             origin.GetComponent<Origin>().AllStarSystems.Add(ps);
             subOriginGO.GetComponent<SubOrigin>().ClusterSystems.Add(ps);
-            //Debug.Log(line);
         }
         // 我 tm n^3
         foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
@@ -666,26 +579,25 @@ public class WorldSettingSceneControl : MonoBehaviour
             {
                 PointSystem neighborPS = origin.GetComponent<Origin>().AllStarSystems.Find(p => p.pointSystemID == neighbor.Key);
                 // 还是会ini两遍同一个connection, 可以在方法里加入一个不重复的判定, 但同样会导致不稳定: 从谁到谁这个记录在存档的时候可能会改变
+                // 那么到底是不稳定记录还是重复记录呢 好问题 我不知道
+                // re-use of the method
                 InstantiateHyperspaceConnection(ps, neighborPS);
-                // 这样就不用Update Connection了? 
             }
         }
-
-        //// 是否可以加入到这里 算了估计会出bug
-        //foreach (PointSystem ps in origin.GetComponent<Origin>().AllStarSystems)
-        //{
-        //    UpdateConnection(ps); // now all edges will be updated, the terminalPS should be able to be assigned the found ps now
-        //}
+        // update overview panel
         PopulateOverviewScroll();
     }
 
-    // disable all in-memory stats currently in Origin and others
+    /// <summary>
+    /// Disables all in-memory stats currently in Origin and others
+    /// </summary>
     private void DestroyCurrentWorldSetting()
     {
         Debug.Log("Clearing Stats stored now in origins");
         // TODO: maybe suborigins need to be saved as well? their positions to origin
-        // their positions are not recorded now anyways, it's strange
-        // TODO: idGenerator... alas
+        // their positions are not recorded now anyways, hmm it's strange
+        // TODO: idGenerator... alas, what do I do with the singleton,
+        // I mean, id starting from non-zero is better than repeated ID... 
         origin.GetComponent<Origin>().SubOrigins.Clear();
         origin.GetComponent<Origin>().AllStarSystems.Clear();
         foreach (Transform childTransform in origin.transform)
@@ -694,20 +606,10 @@ public class WorldSettingSceneControl : MonoBehaviour
         }
     }
 
-    public void ChangeStarSysName()
-    {
-
-    }
-
-    // User edit of selected point system's info
-
-    // stop camera movement
-    public void EditStart()
-    {
-
-    }
-
-    // since no InputField.OnEditStart is available: 
+    /// <summary>
+    /// Stops the camera movements while editing the info (typing). 
+    /// Since no InputField.OnEditStart is available, it sets it again and again. 
+    /// </summary>
     public void EditDuring()
     {
         if (fakeMainCamScript.moving)
@@ -716,7 +618,9 @@ public class WorldSettingSceneControl : MonoBehaviour
         }
     }
 
-    // update star system config
+    /// <summary>
+    /// Update star system config after editing. Unlocks the camera. 
+    /// </summary>
     public void EditEnd()
     {
         fakeMainCamScript.moving = true;
@@ -724,11 +628,14 @@ public class WorldSettingSceneControl : MonoBehaviour
         EditPSSaveConfig(curPS);
     }
 
+    /// <summary>
+    /// Save the information to the edited PS. The weird name is to follow the same Editxxx convention.
+    /// </summary>
+    /// <param name="curPS"></param>
     private void EditPSSaveConfig(PointSystem curPS)
     {
-        curPS.StarSystemName = starSystemNameDynamic.text;
-        //curPS.systemNameTextMesh.text = curPS.StarSystemName;
-        //curPS.StarType = starTypeDynamic.text; // f it's gotta be a drop down
+        curPS.StarSystemName = starSystemNameDynamic.text; // no need to update text since input field does that for us
+        //curPS.StarType = starTypeDynamic.text; // f it's gotta be a drop down, check the TODOs
         curPS.PlanetCount = int.Parse(planetCountDynamic.text);
         curPS.Holder = heldByDynamic.text;
     }
