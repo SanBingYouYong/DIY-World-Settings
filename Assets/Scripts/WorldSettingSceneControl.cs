@@ -391,6 +391,18 @@ public class WorldSettingSceneControl : MonoBehaviour
         lastOriginPS = firstSystemPS;
     }
 
+    private void InitializeNewStarSystem(SubOrigin newSubOriginSO)
+    {
+        GameObject firstSystem = Instantiate(starPoint, newSubOriginSO.transform, false);
+        PointSystem firstSystemPS = firstSystem.GetComponent<PointSystem>();
+        firstSystemPS.pointSystemID = idGenerator.getNextPointSystemID();
+        firstSystemPS.SubOriginID = newSubOriginSO.SubOriginID;
+        firstSystemPS.SetCoordinate();  // note that the default is 000 in this method, but the default in PS ini is -1;
+        origin.GetComponent<Origin>().AllStarSystems.Add(firstSystemPS);
+        newSubOriginSO.ClusterSystems.Add(firstSystemPS);
+        lastOriginPS = firstSystemPS;
+    }
+
     /// <summary>
     /// Initialize the sub origin for the cluster to be generated. 
     /// </summary>
@@ -404,6 +416,43 @@ public class WorldSettingSceneControl : MonoBehaviour
         newSubOriginSO.SubOriginID = newSubOriginID;
         activeSubOriginGO.transform.SetParent(origin.transform, false);
         origin.GetComponent<Origin>().SubOrigins.Add(newSubOriginSO);
+    }
+
+    /// <summary>
+    /// Add one single point system to the map. 
+    /// </summary>
+    public void AddStarSystem()
+    {
+        // try to find a valid sub origin to be spawned into, if no, ini a new SO
+        GameObject intendedSubOriginGO;
+        SubOrigin intendedSubOrigin;
+        if (lastOriginPS == null)
+        {
+            InitializeNewSubOrigin(out intendedSubOriginGO, out intendedSubOrigin);
+        }
+        else
+        {
+            intendedSubOrigin = origin.GetComponent<Origin>().SubOrigins.Find(so => so.SubOriginID == lastOriginPS.SubOriginID);
+        }
+        InitializeNewStarSystem(intendedSubOrigin);
+    }
+
+    /// <summary>
+    /// Add a connection between two PS. If a connection already exists, do nothing. 
+    /// </summary>
+    /// <param name="fromPS"></param>
+    /// <param name="toPS"></param>
+    /// <param name="dist"></param>
+    public void AddConnectionBetween(PointSystem fromPS, PointSystem toPS, float dist)
+    {
+        // || or && both work, but in case some former logic broke, an && will be safer
+        if (fromPS.neighbors.ContainsKey(toPS.pointSystemID) && toPS.neighbors.ContainsKey(fromPS.pointSystemID))
+        {
+            Debug.Log("Connection already present, skipping the addition");
+        }
+        fromPS.neighbors.Add(toPS.pointSystemID, dist);
+        toPS.neighbors.Add(fromPS.pointSystemID, dist);
+        InstantiateHyperspaceConnection(fromPS, toPS);
     }
 
     /// <summary>
